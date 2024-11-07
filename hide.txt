@@ -1,0 +1,480 @@
+		////// Implement Tic-Tac-Toe using A* algorithm
+
+Theory (Simple Explanation)
+The A* algorithm is used in pathfinding, but it can also be adapted to make intelligent moves in games like Tic-Tac-Toe. The idea is to choose moves that bring us closer to winning while avoiding moves that allow the opponent to win.
+
+In Tic-Tac-Toe, we can:
+
+Assign a score to each possible move.
+Use a heuristic (a guess) to estimate the best move by combining the following:
+Current Cost (g): Number of moves taken.
+Estimated Cost to Win (h): Based on how close a move is to winning or blocking an opponent’s win.
+The A* algorithm will evaluate each move and choose the one with the lowest combined cost 
+f=g+h.
+
+Implementation in Python
+python
+Copy code
+import math
+
+# Tic-Tac-Toe board
+board = [' ' for _ in range(9)]
+
+def print_board():
+    for i in range(3):
+        print(board[i*3:i*3+3])
+
+def is_winner(player):
+    win_positions = [
+        (0, 1, 2), (3, 4, 5), (6, 7, 8),  # Rows
+        (0, 3, 6), (1, 4, 7), (2, 5, 8),  # Columns
+        (0, 4, 8), (2, 4, 6)              # Diagonals
+    ]
+    for pos in win_positions:
+        if all(board[i] == player for i in pos):
+            return True
+    return False
+
+def heuristic_score(player):
+    if is_winner(player):
+        return 1
+    elif is_winner('O' if player == 'X' else 'X'):
+        return -1
+    return 0
+
+def a_star_move(player):
+    best_move = None
+    best_score = -math.inf if player == 'X' else math.inf
+
+    for i in range(9):
+        if board[i] == ' ':
+            board[i] = player
+            score = heuristic_score(player)
+            board[i] = ' '
+            if player == 'X' and score > best_score:
+                best_score = score
+                best_move = i
+            elif player == 'O' and score < best_score:
+                best_score = score
+                best_move = i
+    
+    return best_move
+
+# Game loop
+for turn in range(9):
+    print_board()
+    if turn % 2 == 0:
+        print("X's move:")
+        move = a_star_move('X')
+        board[move] = 'X'
+        if is_winner('X'):
+            print("X wins!")
+            break
+    else:
+        print("O's move:")
+        move = a_star_move('O')
+        board[move] = 'O'
+        if is_winner('O'):
+            print("O wins!")
+            break
+else:
+    print("It's a draw!")
+
+print_board()
+How It Works (Simple Steps)
+The board is represented as a list of 9 spaces.
+The is_winner function checks if a player has won by matching board positions.
+The heuristic_score function returns a score of 1 if X wins, -1 if O wins, and 0 if no one wins.
+The a_star_move function simulates each possible move for the current player and chooses the one with the best score.
+The game loop runs until all moves are played or one player wins.
+
+		///////Implement 3 missionaries and 3 cannibals problem
+depicting appropriate graph. Use A* algorithm.
+
+The 3 Missionaries and 3 Cannibals problem is a classic AI problem where three missionaries and three cannibals need to cross a river using a boat. The boat can hold only two people, and we must ensure that missionaries are never outnumbered by cannibals on either side of the river, or they will be "eaten."
+
+Theory (Simplified)
+In this problem, we can use the A* algorithm to find the optimal path from the starting state to the goal state. The A* algorithm uses a cost function:
+
+f(n)=g(n)+h(n)
+
+where:
+
+g(n) is the cost to reach node 
+n from the start.
+h(n) is a heuristic estimate of the cost to reach the goal from 
+n.
+
+Here:
+The state is represented as (M_left, C_left, B_left), where:
+M_left is the number of missionaries on the left side.
+C_left is the number of cannibals on the left side.
+B_left is 1 if the boat is on the left side, 0 if on the right.
+The goal state is (0, 0, 0), meaning all missionaries and cannibals are on the right side of the river.
+A* Algorithm Implementation
+python
+Copy code
+import heapq
+
+# Initial and goal states
+start = (3, 3, 1)  # (3 missionaries, 3 cannibals, boat on the left)
+goal = (0, 0, 0)   # All on the right
+
+# Possible moves for the boat
+moves = [
+    (1, 0),  # 1 missionary
+    (0, 1),  # 1 cannibal
+    (1, 1),  # 1 missionary and 1 cannibal
+    (2, 0),  # 2 missionaries
+    (0, 2)   # 2 cannibals
+]
+
+# Check if a state is safe
+def is_safe(missionaries, cannibals):
+    if missionaries < 0 or missionaries > 3 or cannibals < 0 or cannibals > 3:
+        return False
+    if missionaries > 0 and missionaries < cannibals:
+        return False
+    if (3 - missionaries) > 0 and (3 - missionaries) < (3 - cannibals):
+        return False
+    return True
+
+# Heuristic: number of people left on the starting side
+def heuristic(state):
+    M, C, _ = state
+    return M + C
+
+# Generate possible next states
+def get_successors(state):
+    M, C, B = state
+    successors = []
+    for m, c in moves:
+        if B == 1:  # Boat is on the left
+            new_state = (M - m, C - c, 0)
+        else:       # Boat is on the right
+            new_state = (M + m, C + c, 1)
+
+        if is_safe(*new_state[:2]):
+            successors.append(new_state)
+    return successors
+
+# A* algorithm
+def a_star(start, goal):
+    open_list = []
+    heapq.heappush(open_list, (0 + heuristic(start), 0, start, []))  # (f, g, state, path)
+    visited = set()
+
+    while open_list:
+        _, g, state, path = heapq.heappop(open_list)
+
+        if state == goal:
+            return path + [state]  # Path to the solution
+
+        if state in visited:
+            continue
+        visited.add(state)
+
+        for successor in get_successors(state):
+            if successor not in visited:
+                f = g + 1 + heuristic(successor)
+                heapq.heappush(open_list, (f, g + 1, successor, path + [state]))
+
+    return None
+
+# Run A* to solve the problem
+solution = a_star(start, goal)
+
+# Print the solution path
+if solution:
+    for step in solution:
+        print(f"Missionaries Left: {step[0]}, Cannibals Left: {step[1]}, Boat Left: {step[2]}")
+else:
+    print("No solution found.")
+Explanation of Code
+is_safe function checks if a state is safe by ensuring missionaries are not outnumbered by cannibals on either side.
+heuristic function calculates the number of people left on the starting side. This helps estimate the remaining cost.
+get_successors function generates all possible states by moving missionaries and cannibals with the boat.
+a_star function performs the A* search, expanding nodes and keeping track of the minimum cost path.
+Finally, it prints each step in the path to show the moves.
+
+		///// Implement alpha-beta pruning graphically with
+proper example and justify the pruning.
+
+Here’s an explanation of alpha-beta pruning along with a simple example. I'll provide code to visualize it graphically as well.
+
+Theory (Simplified)
+Alpha-beta pruning is an optimization of the Minimax algorithm used in decision-making and game theory. It reduces the number of nodes evaluated in the search tree by “pruning” branches that cannot influence the final decision.
+
+Alpha represents the best value that the maximizing player can guarantee.
+Beta represents the best value that the minimizing player can guarantee.
+The algorithm:
+
+Searches through nodes in a depth-first manner.
+Updates alpha and beta values based on the maximizing or minimizing turn.
+Prunes branches where it’s clear that a move won’t affect the final decision.
+Example
+Consider a game tree with the following nodes and values at the leaf level:
+
+mathematica
+Copy code
+        A
+       / \
+      B   C
+     / \  / \
+    D   E F   G
+   / \ / \/ \ / \
+  3  5 6  9 1  2 0
+Assume the root node (A) is the maximizing player’s turn.
+
+As we evaluate, if we find a branch that offers no better outcome than a previously considered branch, we stop evaluating further (prune) to save computation time.
+Python Code with Alpha-Beta Pruning Visualization
+We’ll use matplotlib to visualize the graph and show how alpha-beta pruning is applied.
+
+python
+Copy code
+import matplotlib.pyplot as plt
+import networkx as nx
+
+# Tree structure: each node has a value or list of children nodes
+tree = {
+    'A': ['B', 'C'],
+    'B': ['D', 'E'],
+    'C': ['F', 'G'],
+    'D': [3, 5],
+    'E': [6, 9],
+    'F': [1, 2],
+    'G': [0]
+}
+
+# Initialize graph for visualization
+G = nx.DiGraph()
+G.add_edges_from([
+    ('A', 'B'), ('A', 'C'),
+    ('B', 'D'), ('B', 'E'),
+    ('C', 'F'), ('C', 'G'),
+    ('D', '3'), ('D', '5'),
+    ('E', '6'), ('E', '9'),
+    ('F', '1'), ('F', '2'),
+    ('G', '0')
+])
+
+# Position the nodes for clear visualization
+pos = {
+    'A': (0, 3), 'B': (-2, 2), 'C': (2, 2),
+    'D': (-3, 1), 'E': (-1, 1), 'F': (1, 1), 'G': (3, 1),
+    '3': (-3.5, 0), '5': (-2.5, 0), '6': (-1.5, 0), '9': (-0.5, 0),
+    '1': (0.5, 0), '2': (1.5, 0), '0': (3.5, 0)
+}
+
+def alpha_beta_prune(node, depth, alpha, beta, maximizing_player, visited=[]):
+    visited.append(node)
+    if isinstance(node, int):  # If it's a leaf node, return the value
+        return node
+
+    if maximizing_player:
+        max_eval = float('-inf')
+        for child in tree[node]:
+            eval = alpha_beta_prune(child, depth + 1, alpha, beta, False, visited)
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break  # Beta cut-off
+        return max_eval
+    else:
+        min_eval = float('inf')
+        for child in tree[node]:
+            eval = alpha_beta_prune(child, depth + 1, alpha, beta, True, visited)
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break  # Alpha cut-off
+        return min_eval
+
+# Run the alpha-beta pruning and capture visited nodes
+visited_nodes = []
+result = alpha_beta_prune('A', 0, float('-inf'), float('inf'), True, visited_nodes)
+
+# Visualize the tree with pruned nodes
+node_colors = ['lightgreen' if node in visited_nodes else 'lightcoral' for node in G.nodes()]
+plt.figure(figsize=(10, 6))
+nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=1000, font_size=10)
+plt.title(f'Alpha-Beta Pruning Result: {result}')
+plt.show()
+Explanation of Code
+Tree Definition: The tree is represented as a dictionary where each node points to its children or a value if it’s a leaf.
+Alpha-Beta Function:
+Recursively evaluates each node, updating alpha and beta.
+If a pruning condition is met (beta <= alpha), it stops further evaluation of that branch.
+Visualization:
+A networkx graph is used to show nodes, where nodes pruned by alpha-beta pruning are highlighted in a different color.
+Justification of Pruning
+In our example, let’s say the maximizing player starts at node A:
+
+When exploring B -> D -> 3 and 5, it calculates values for B and finds 5 is the maximum.
+Moving to C, it explores F -> 1 and 2. However, 1 is smaller than the minimum needed for A to maximize, so G is not evaluated.
+
+			////// Develop elementary chatbot for suggesting
+investment as per the customers need.
+
+Here’s a simple chatbot in Python that suggests investment options based on customer needs. This chatbot will use basic conditions to provide tailored responses.
+
+Features
+Risk Level: Determines if the customer prefers high, medium, or low risk.
+Investment Duration: Determines if the customer is looking for short-term, medium-term, or long-term investments.
+Goal: Understands if the goal is for retirement, wealth accumulation, or saving for a specific expense.
+Code Implementation
+python
+Copy code
+def investment_chatbot():
+    print("Hello! I'm here to help you find suitable investment options.")
+    name = input("First, may I know your name? ")
+    print(f"Nice to meet you, {name}!")
+
+    # Asking the customer about risk level
+    risk_level = input("What's your risk tolerance? (low, medium, high): ").lower()
+    while risk_level not in ['low', 'medium', 'high']:
+        risk_level = input("Please enter a valid risk tolerance (low, medium, high): ").lower()
+
+    # Asking about the investment duration
+    duration = input("How long are you planning to invest? (short-term, medium-term, long-term): ").lower()
+    while duration not in ['short-term', 'medium-term', 'long-term']:
+        duration = input("Please enter a valid duration (short-term, medium-term, long-term): ").lower()
+
+    # Asking about investment goal
+    goal = input("What's your investment goal? (retirement, wealth accumulation, saving for a specific expense): ").lower()
+    while goal not in ['retirement', 'wealth accumulation', 'saving for a specific expense']:
+        goal = input("Please enter a valid goal (retirement, wealth accumulation, saving for a specific expense): ").lower()
+
+    # Investment suggestions based on input
+    print("\nBased on your preferences, here are some investment options for you:")
+
+    # Suggesting based on risk tolerance and duration
+    if risk_level == 'low':
+        if duration == 'short-term':
+            print("- Consider a high-yield savings account or a money market fund.")
+        elif duration == 'medium-term':
+            print("- Consider bonds or bond mutual funds, as they offer stability.")
+        elif duration == 'long-term':
+            print("- Look into fixed deposits or government bonds for long-term stability.")
+    
+    elif risk_level == 'medium':
+        if duration == 'short-term':
+            print("- Consider balanced mutual funds that mix stocks and bonds.")
+        elif duration == 'medium-term':
+            print("- Look into index funds or blue-chip stocks for steady growth.")
+        elif duration == 'long-term':
+            print("- Consider a diversified portfolio with a mix of stocks and bonds.")
+    
+    elif risk_level == 'high':
+        if duration == 'short-term':
+            print("- Consider high-growth stocks or sector-focused ETFs for potential quick returns.")
+        elif duration == 'medium-term':
+            print("- Look into growth mutual funds or individual stocks in growing sectors.")
+        elif duration == 'long-term':
+            print("- Consider investing in a mix of stocks, real estate, or even cryptocurrency for high growth.")
+
+    # Adding suggestions based on goal
+    if goal == 'retirement':
+        print("- Since you're planning for retirement, consider a retirement plan such as an IRA or 401(k), if available.")
+    elif goal == 'wealth accumulation':
+        print("- For wealth accumulation, focus on a diversified portfolio and consider reinvesting dividends.")
+    elif goal == 'saving for a specific expense':
+        print("- To save for a specific expense, consider low-risk options like a savings account or short-term CDs.")
+
+    print("\nI hope these suggestions are helpful! Remember to always consult with a financial advisor for personalized advice.")
+
+# Run the chatbot
+investment_chatbot()
+Explanation
+Risk Tolerance: The chatbot first asks about the customer’s risk tolerance (low, medium, high) and validates input.
+Investment Duration: It asks about the duration (short-term, medium-term, long-term) and validates input.
+Investment Goal: It considers the goal of the investment (retirement, wealth accumulation, or a specific expense).
+Suggestions: Based on these inputs, it provides a mix of investment suggestions tailored to the customer’s preferences.
+
+
+			////// Use Heuristic Search Techniques to Implement
+Hill-Climbing Algorithm.
+
+The Hill-Climbing Algorithm is a heuristic search technique that continuously moves towards the direction of increasing value (for maximization) or decreasing value (for minimization) until it reaches a peak or valley. This algorithm can sometimes get stuck at a local optimum, so it’s not guaranteed to find the global optimum without enhancements.
+
+Hill-Climbing Algorithm Theory (Simplified)
+Initialize at a random starting point.
+Evaluate Neighboring States: Check neighboring solutions to see if they provide a better value.
+Move to Best Neighbor: If a neighboring state has a better value, move to it.
+Stop at Peak/Valley: If no neighboring state has a better value, the algorithm stops. This point is a local optimum.
+The Hill-Climbing algorithm works well in scenarios where we can define a clear objective function and we want to move towards the best value.
+
+Example: Hill-Climbing for Maximizing a Simple Function
+We’ll use the function 
+f(x)=−x 
+2
+ +4x, which has a maximum at 
+x=2. The goal is to find the value of 
+𝑥
+x that maximizes 
+f(x).
+
+Code Implementation of Hill-Climbing
+Here’s a Python implementation of the Hill-Climbing algorithm to maximize 
+f(x)=−x 
+2
+ +4x.
+
+python
+Copy code
+import random
+
+# Define the function we want to maximize
+def objective_function(x):
+    return -x**2 + 4 * x
+
+# Hill-Climbing algorithm
+def hill_climb(start_x, step_size=0.1, max_iterations=100):
+    current_x = start_x
+    current_value = objective_function(current_x)
+    iterations = 0
+
+    print(f"Starting Hill Climbing from x = {current_x}, f(x) = {current_value}")
+
+    while iterations < max_iterations:
+        # Generate neighboring solutions
+        neighbors = [current_x + step_size, current_x - step_size]
+
+        # Evaluate neighbors
+        neighbor_values = [objective_function(neighbors[0]), objective_function(neighbors[1])]
+        max_neighbor_value = max(neighbor_values)
+        best_neighbor_index = neighbor_values.index(max_neighbor_value)
+        best_neighbor = neighbors[best_neighbor_index]
+
+        # Check if the best neighbor is better than the current value
+        if max_neighbor_value > current_value:
+            current_x = best_neighbor
+            current_value = max_neighbor_value
+            print(f"Move to x = {current_x}, f(x) = {current_value}")
+        else:
+            print("Reached a peak.")
+            break
+
+        iterations += 1
+
+    print(f"Finished at x = {current_x}, f(x) = {current_value} after {iterations} iterations.")
+    return current_x, current_value
+
+# Run the hill-climbing algorithm starting from a random point
+start_x = random.uniform(0, 4)  # Random start within the range [0, 4]
+hill_climb(start_x)
+Explanation of Code
+Objective Function: The function 
+f(x)=−x pow 2 +4x is defined, which has a maximum at 
+x=2.
+Neighbors Generation: The algorithm evaluates neighboring points by adding and subtracting a step_size from the current point.
+Move to Best Neighbor: If a neighboring point yields a better value, the algorithm moves to this point.
+Stopping Condition: The algorithm stops if no neighboring point improves the objective value or if it reaches the maximum number of iterations.
+Explanation of Example
+The Hill-Climbing algorithm starts from a random point in the range [0, 4] and moves towards the maximum of the function.
+The algorithm stops at the point where no better neighbor is available, which may be the global maximum if the starting point was favorable.
+Limitations and Enhancements
+The Hill-Climbing algorithm can get stuck at local optima. To improve it:
+
+Random Restarts: Run the algorithm multiple times from different starting points.
+Simulated Annealing: Allow occasional moves to worse states to escape local optima
